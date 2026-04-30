@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container { width: 100%; max-width: 800px; padding: 20px; }
+
+      h1 { text-align: center; margin-bottom: 20px; color: #e94560; }
+
+      /* --- Login Panel --- */
+      #login-panel {
+        background: #16213e;
+        padding: 30px;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* --- Chat Panel --- */
+      #chat-panel { display: none; flex-direction: column; gap: 12px; }
+
+      /* --- Messages Box --- */
+      #messages {
+        background: #16213e;
+        border-radius: 12px;
+        padding: 16px;
+        height: 400px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .msg {
+        padding: 8px 12px;
+        border-radius: 8px;
+        max-width: 75%;
+        word-break: break-word;
+      }
+
+      .msg.mine {
+        background: #e94560;
+        align-self: flex-end;
+        color: #fff;
+      }
+
+      .msg.other {
+        background: #0f3460;
+        align-self: flex-start;
+      }
+
+      .msg.system {
+        background: transparent;
+        color: #888;
+        font-size: 12px;
+        align-self: center;
+        font-style: italic;
+      }
+
+      .msg .meta {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-bottom: 3px;
+      }
+
+      /* --- Users Sidebar --- */
+      #room-info {
+        background: #16213e;
+        border-radius: 12px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: #aaa;
+      }
+
+      #room-info span { color: #e94560; font-weight: bold; }
+
+      /* --- Input Row --- */
+      .input-row {
+        display: flex;
+        gap: 8px;
+      }
+
+      input, button {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: none;
+        outline: none;
+        font-size: 14px;
+      }
+
+      input {
+        flex: 1;
+        background: #0f3460;
+        color: #fff;
+      }
+
+      input::placeholder { color: #666; }
+
+      button {
+        background: #e94560;
+        color: #fff;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+
+      button:hover { background: #c73652; }
+
+      button.secondary {
+        background: #0f3460;
+      }
+
+      button.secondary:hover { background: #1a4a8a; }
+
+      #status {
+        text-align: center;
+        font-size: 12px;
+        color: #e94560;
+        min-height: 18px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>💬 Chat App</h1>
+
+      <!-- LOGIN PANEL -->
+      <div id="login-panel">
+        <input id="username-input" type="text" placeholder="Enter your username..." maxlength="20" />
+        <input id="room-input" type="text" placeholder="Enter room ID (e.g. general)" value="general" />
+        <button id="join-btn">Join Room</button>
+        <div id="status"></div>
+      </div>
+
+      <!-- CHAT PANEL -->
+      <div id="chat-panel">
+        <div id="room-info">
+          Room: <span id="room-label"></span> &nbsp;|&nbsp;
+          Online: <span id="users-label">0</span> user(s)
+        </div>
+
+        <div id="messages"></div>
+
+        <div class="input-row">
+          <input id="message-input" type="text" placeholder="Type a message..." maxlength="300" />
+          <button id="send-btn">Send</button>
+          <button id="leave-btn" class="secondary">Leave</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let currentRoom = null;
+      let currentUser = null;
+
+      const $ = (id) => document.getElementById(id);
+
+      // --- JOIN ROOM ---
+      $('join-btn').addEventListener('click', () => {
+        const username = $('username-input').value.trim();
+        const roomId   = $('room-input').value.trim();
+
+        if (!username || username.length < 2) {
+          $('status').textContent = '⚠️ Username must be at least 2 characters';
+          return;
+        }
+        if (!roomId) {
+          $('status').textContent = '⚠️ Room ID is required';
+          return;
+        }
+
+        currentUser = username;
+        currentRoom = roomId;
+
+        // Connect to /chat namespace with auth
+        socket = io('/chat', {
+          auth: { username },
+        });
+
+        socket.on('connect', () => {
+          console.log('🔌 Connected:', socket.id);
+          socket.emit('join_room', { roomId, username });
+
+          // Switch panels
+          $('login-panel').style.display  = 'none';
+          $('chat-panel').style.display   = 'flex';
+          $('room-label').textContent     = roomId;
+          $('status').textContent         = '';
+        });
+
+        socket.on('connect_error', (err) => {
+          $('status').textContent = `❌ ${err.message}`;
+        });
+
+        // --- RECEIVE MESSAGE HISTORY ---
+        socket.on('message_history', (messages) => {
+          messages.forEach((msg) => addMessage(msg, msg.username === currentUser));
+        });
+
+        // --- RECEIVE NEW MESSAGE ---
+        socket.on('receive_message', (msg) => {
+          addMessage(msg, msg.username === currentUser);
+        });
+
+        // --- USER JOINED ---
+        socket.on('user_joined', ({ username }) => {
+          addSystemMessage(`${username} joined the room`);
+        });
+
+        // --- USER LEFT ---
+        socket.on('user_left', ({ username }) => {
+          addSystemMessage(`${username} left the room`);
+        });
+
+        // --- ROOM USERS UPDATE ---
+        socket.on('room_users', (users) => {
+          $('users-label').textContent = users.length;
+        });
+      });
+
+      // --- SEND MESSAGE ---
+      $('send-btn').addEventListener('click', sendMessage);
+      $('message-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+
+      function sendMessage() {
+        const content = $('message-input').value.trim();
+        if (!content || !socket) return;
+        socket.emit('send_message', { roomId: currentRoom, content });
+        $('message-input').value = '';
+      }
+
+      // --- LEAVE ROOM ---
+      $('leave-btn').addEventListener('click', () => {
+        if (socket) {
+          socket.emit('leave_room', { roomId: currentRoom });
+          socket.disconnect();
+        }
+        $('chat-panel').style.display  = 'none';
+        $('login-panel').style.display = 'flex';
+        $('messages').innerHTML        = '';
+        currentRoom = null;
+        currentUser = null;
+      });
+
+      // --- HELPERS ---
+      function addMessage(msg, isMine) {
+        const div = document.createElement('div');
+        div.className = `msg ${isMine ? 'mine' : 'other'}`;
+        div.innerHTML = `
+          <div class="meta">${isMine ? 'You' : msg.username} · ${formatTime(msg.timestamp)}</div>
+          <div>${escapeHtml(msg.content)}</div>
+        `;
+        $('messages').appendChild(div);
+        $('messages').scrollTop = $('messages').scrollHeight;
+      }
+
+      function addSystemMessage(text) {
+        const div = document.createElement('div');
+        div.className = 'msg system';
+        div.textContent = text;
+        $('messages').appendChild(div);
+        $('messages').scrollTop = $('messages').scrollHeight;
+      }
+
+      function formatTime(ts) {
+        return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+
+      function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(text));
+        return d.innerHTML;
+      }
+    </script>
+  </body>
+</html>
