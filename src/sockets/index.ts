@@ -1,7 +1,7 @@
 import { Server } from 'socket.io';
 import { httpServer } from '../index';
 import { registerChatHandlers } from './chat.socket';
-import { socketAuthMiddleware } from '../middlewares/socketAuth'; // 👈 add
+import { socketAuthMiddleware } from '../middlewares/socketAuth';
 
 const io = new Server(httpServer, {
   cors: {

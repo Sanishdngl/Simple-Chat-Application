@@ -4,8 +4,6 @@ export const socketAuthMiddleware = (
   socket: Socket,
   next: (err?: Error) => void,
 ) => {
-  // Client must pass username in handshake auth
-  // Example: socket = io('/chat', { auth: { username: 'John' } })
   const username = socket.handshake.auth?.username as string;
 
   if (!username || username.trim() === '') {
@@ -18,7 +16,6 @@ export const socketAuthMiddleware = (
     return next(new Error('USERNAME_INVALID'));
   }
 
-  // Attach username to socket data so handlers can access it
   socket.data.username = username.trim();
 
   console.log(`🔐 Auth passed for: ${socket.data.username}`);
