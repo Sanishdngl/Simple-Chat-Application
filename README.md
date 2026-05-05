@@ -4,19 +4,19 @@ A real-time chat application with room support, built with **Node.js**, **TypeSc
 
 ---
 
-## 🚀 Tech Stack
+##  Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js (LTS via nvm) |
-| Language | TypeScript |
-| Framework | Express.js |
-| WebSockets | Socket.io v4 |
-| Storage | In-Memory (Map) |
-| API Docs | Swagger UI (swagger-jsdoc) |
-| Linting | ESLint v10 (flat config) |
-| Formatting | Prettier |
-| Git Hooks | Husky + lint-staged |
+| Layer      | Technology                 |
+| ---------- | -------------------------- |
+| Runtime    | Node.js (LTS via nvm)      |
+| Language   | TypeScript                 |
+| Framework  | Express.js                 |
+| WebSockets | Socket.io v4               |
+| Storage    | In-Memory (Map)            |
+| API Docs   | Swagger UI (swagger-jsdoc) |
+| Linting    | ESLint v10 (flat config)   |
+| Formatting | Prettier                   |
+| Git Hooks  | Husky + lint-staged        |
 
 ---
 
@@ -71,17 +71,20 @@ chat-app/
 ## 🛠️ Setup & Installation
 
 ### 1. Clone the repository
+
 ```bash
 git clone <your-repo-url>
 cd chat-app
 ```
 
 ### 2. Use correct Node version
+
 ```bash
 nvm use
 ```
 
 ### 3. Install dependencies
+
 ```bash
 npm install
 ```
@@ -89,6 +92,7 @@ npm install
 ### 4. Configure environment variables
 
 Create a `.env` file in the project root:
+
 ```env
 PORT=4000
 NODE_ENV=development
@@ -99,11 +103,13 @@ NODE_ENV=development
 ## ▶️ Running the App
 
 ### Development (auto-restart on file save)
+
 ```bash
 npm run dev
 ```
 
 ### Production build
+
 ```bash
 npm run build
 npm start
@@ -113,13 +119,13 @@ npm start
 
 ## 📜 Available Scripts
 
-| Script | Command | Description |
-|---|---|---|
-| Development | `npm run dev` | Run with ts-node-dev (auto-restart) |
-| Build | `npm run build` | Compile TypeScript → `dist/` |
-| Start | `npm start` | Run compiled production build |
-| Lint | `npm run lint` | Run ESLint on all `.ts` files |
-| Format | `npm run format` | Auto-format all `.ts` files with Prettier |
+| Script      | Command          | Description                               |
+| ----------- | ---------------- | ----------------------------------------- |
+| Development | `npm run dev`    | Run with ts-node-dev (auto-restart)       |
+| Build       | `npm run build`  | Compile TypeScript → `dist/`              |
+| Start       | `npm start`      | Run compiled production build             |
+| Lint        | `npm run lint`   | Run ESLint on all `.ts` files             |
+| Format      | `npm run format` | Auto-format all `.ts` files with Prettier |
 
 ---
 
@@ -127,11 +133,11 @@ npm start
 
 Once the server is running:
 
-| URL | Description |
-|---|---|
-| `http://localhost:4000` | HTML Chat Client |
+| URL                              | Description      |
+| -------------------------------- | ---------------- |
+| `http://localhost:4000`          | HTML Chat Client |
 | `http://localhost:4000/api-docs` | Swagger API Docs |
-| `http://localhost:4000/health` | Health Check |
+| `http://localhost:4000/health`   | Health Check     |
 
 ---
 
@@ -139,19 +145,21 @@ Once the server is running:
 
 Base URL: `http://localhost:4000`
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/health` | Health check |
-| GET | `/api/rooms` | Get all active rooms |
-| GET | `/api/rooms/:roomId` | Get a single room |
-| GET | `/api/rooms/:roomId/messages` | Get last 50 messages in a room |
+| Method | Endpoint                      | Description                    |
+| ------ | ----------------------------- | ------------------------------ |
+| GET    | `/health`                     | Health check                   |
+| GET    | `/api/rooms`                  | Get all active rooms           |
+| GET    | `/api/rooms/:roomId`          | Get a single room              |
+| GET    | `/api/rooms/:roomId/messages` | Get last 50 messages in a room |
 
 ### Example — Get all rooms
+
 ```bash
 curl http://localhost:4000/api/rooms
 ```
 
 ### Example — Get room messages
+
 ```bash
 curl http://localhost:4000/api/rooms/general/messages
 ```
@@ -164,21 +172,21 @@ curl http://localhost:4000/api/rooms/general/messages
 
 ### Client → Server
 
-| Event | Payload | Description |
-|---|---|---|
-| `join_room` | `{ roomId, username }` | Join a chat room |
-| `send_message` | `{ roomId, content }` | Send a message to a room |
-| `leave_room` | `{ roomId }` | Leave a chat room |
+| Event          | Payload                | Description              |
+| -------------- | ---------------------- | ------------------------ |
+| `join_room`    | `{ roomId, username }` | Join a chat room         |
+| `send_message` | `{ roomId, content }`  | Send a message to a room |
+| `leave_room`   | `{ roomId }`           | Leave a chat room        |
 
 ### Server → Client
 
-| Event | Payload | Description |
-|---|---|---|
-| `message_history` | `Message[]` | Last 50 messages on room join |
-| `receive_message` | `Message` | New message broadcast to room |
-| `user_joined` | `{ username, roomId, timestamp }` | User joined notification |
-| `user_left` | `{ username, roomId, timestamp }` | User left notification |
-| `room_users` | `string[]` | Updated list of users in room |
+| Event             | Payload                           | Description                   |
+| ----------------- | --------------------------------- | ----------------------------- |
+| `message_history` | `Message[]`                       | Last 50 messages on room join |
+| `receive_message` | `Message`                         | New message broadcast to room |
+| `user_joined`     | `{ username, roomId, timestamp }` | User joined notification      |
+| `user_left`       | `{ username, roomId, timestamp }` | User left notification        |
+| `room_users`      | `string[]`                        | Updated list of users in room |
 
 ---
 
@@ -188,15 +196,17 @@ Every client must pass a `username` in the Socket.io handshake auth object:
 
 ```javascript
 const socket = io('/chat', {
-  auth: { username: 'Alice' }
+  auth: { username: 'Alice' },
 });
 ```
 
 ### Validation Rules
+
 - `username` is **required**
 - Must be between **2–20 characters**
 
 ### On Auth Failure
+
 ```javascript
 socket.on('connect_error', (err) => {
   console.log(err.message);
@@ -248,9 +258,10 @@ Messages are stored in a `Map<roomId, Message[]>` during the server session.
 > ⚠️ **Messages are lost on server restart.** Redis persistence is planned for Phase 2.
 
 Each message has:
+
 ```typescript
 {
-  id: string;        // UUID v4
+  id: string; // UUID v4
   roomId: string;
   username: string;
   content: string;
@@ -265,6 +276,7 @@ Only the **last 50 messages** per room are returned to clients on join.
 ## 🔒 Git Hooks (Husky)
 
 On every `git commit`, lint-staged runs automatically:
+
 - ESLint fixes on staged `.ts` files
 - Prettier formats staged `.ts` files
 
